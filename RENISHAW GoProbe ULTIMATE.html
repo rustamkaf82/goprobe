@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renishaw GoProbe ULTIMATE Simulator</title>
+    <style>
+        :root { --orange: #ff6600; --dark: #1e1e1e; --panel: #2d2d2d; --text: #fff; --dim: #b3b3b3; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: var(--text); margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 1100px; background: var(--panel); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); overflow: hidden; border-top: 5px solid var(--orange); }
+        header { background: #111; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; }
+        header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
+        header h1 span { color: var(--orange); }
+        .main-layout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 15px; padding: 15px; }
+        @media (max-width: 900px) { .main-layout { grid-template-columns: 1fr; } }
+        .panel-title { font-size: 13px; text-transform: uppercase; color: var(--orange); margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 4px; }
+        .menu-section { margin-bottom: 12px; }
+        .menu-section-title { font-size: 11px; color: var(--dim); margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .menu-btn { background: #3a3a3a; color: var(--text); border: 2px solid transparent; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; text-align: left; }
+        .menu-btn:hover { background: #4a4a4a; }
+        .menu-btn.active { background: var(--orange); color: #000; font-weight: bold; }
+        .input-group { margin-top: 10px; }
+        .input-group label { display: block; font-size: 12px; color: var(--dim); margin-bottom: 4px; }
+        .input-group input, .input-group select { width: 100%; padding: 8px 10px; background: #333; border: 1px solid #555; border-radius: 4px; color: #fff; font-size: 14px; box-sizing: border-box; }
+        .input-group input:focus { border-color: var(--orange); outline: none; }
+        .visualizer-container { background: #111; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; align-items: center; border: 1px solid #444; }
+        canvas { background: #151515; border-radius: 4px; max-width: 100%; }
+        .graphic-text { margin-top: 8px; font-size: 12px; color: var(--dim); text-align: center; min-height: 40px; padding: 0 5px; }
+        .output-box { background: #050505; border: 1px solid #333; border-radius: 6px; padding: 12px; font-family: monospace; font-size: 16px; color: #00ff00; white-space: pre-line; min-height: 45px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); margin-top: 10px; font-weight: bold; }
+        .copy-btn { background: #333; color: #fff; border: 1px solid #555; padding: 10px; border-radius: 4px; cursor: pointer; margin-top: 10px; width: 100%; font-weight: bold; font-size: 13px; }
+        .copy-btn:hover { border-color: var(--orange); background: #444; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>RENISHAW <span>GoProbe ULTIMATE</span></h1>
+        <div style="font-size: 28px; color: var(--orange);font-weight: bold;">СпецСервис</div>
+    </header>
+
+    <div class="main-layout">
+        <!-- Левая колонка: 15 макрокоманд -->
+        <div>
+            <div class="panel-title">1. Выбор макропрограммы (M)</div>
+            
+            <div class="menu-section">
+                <div class="menu-section-title">Базовые элементы:</div>
+                <div class="menu-grid">
+                    <button class="menu-btn active" onclick="setCycle('surface')">⚫ Грань (M1)</button>
+                    <button class="menu-btn" onclick="setCycle('bore')">⭕ Отверстие (M2)</button>
+                    <button class="menu-btn" onclick="setCycle('boss')">💿 Бобышка (M3)</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-section-title">Внутренние / Наружные пазы:</div>
+                <div class="menu-grid">
+                    <button class="menu-btn" onclick="setCycle('pocket_x')">↔️ Карман X (M4)</button>
+                    <button class="menu-btn" onclick="setCycle('pocket_y')">↕️ Карман Y (M5)</button>
+                    <button class="menu-btn" onclick="setCycle('web_x')">⏹️ Ребро X (M6)</button>
+                    <button class="menu-btn" onclick="setCycle('web_y')">═ Ребро Y (M7)</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-section-title">Сложная геометрия и углы:</div>
+                <div class="menu-grid">
+                    <button class="menu-btn" onclick="setCycle('line')">📏 Линия / Наклон (M8)</button>
+                    <button class="menu-btn" onclick="setCycle('plane3p')">📐 Плоскость по 3 точкам (M9)</button>
+                    <button class="menu-btn" onclick="setCycle('angle_in')">📉 Внутренний угол (M14)</button>
+                    <button class="menu-btn" onclick="setCycle('angle_out')">📈 Внешний угол (M15)</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-section-title">Калибровки и поворотные оси:</div>
+                <div class="menu-grid">
+                    <button class="menu-btn" onclick="setCycle('rot_axis')">🔄 Поворотные оси (M201)</button>
+                    <button class="menu-btn" onclick="setCycle('cal_sphere')">🔮 На Сфере (M105)</button>
+                    <button class="menu-btn" onclick="setCycle('cal_ring')">⭕ В Кольце (M102)</button>
+                    <button class="menu-btn" onclick="setCycle('cal_z')">📏 Длина Z (M103)</button>
+                </div>
+            </div>
+
+            <div class="panel-title" style="margin-top: 10px;">2. Настройка аргументов</div>
+            <div class="input-group">
+                <label for="cnc-system">Система ЧПУ (Синтаксис):</label>
+                <select id="cnc-system" onchange="setCNC(this.value)">
+                    <option value="fanuc">Fanuc / Haas (G65 P9901)</option>
+                    <option value="siemens_l">Siemens (Макрос L9901)</option>
+                </select>
+            </div>
+            <div class="input-group" id="axis-group">
+                <label for="axis-val">Ось измерения / Выравнивания (A):</label>
+                <select id="axis-val" onchange="generateGCode()">
+                    <option value="1">Ось X (A1)</option>
+                    <option value="2">Ось Y (A2)</option>
+                    <option value="3" selected>Ось Z (A3)</option>
+                    <option value="4">Поворотная ось A (A4)</option>
+                    <option value="5">Поворотная ось B (A5)</option>
+                    <option value="6">Поворотная ось C (A6)</option>
+                </select>
+            </div>
+            <div class="input-group" id="dir-group">
+                <label for="dir-val">Направление замера грани:</label>
+                <select id="dir-val" onchange="generateGCode()">
+                    <option value="1">В положительную сторону (+)</option>
+                    <option value="-1">В отрицательную сторону (-)</option>
+                </select>
+            </div>
+            <div class="input-group" id="wcs-group">
+                <label for="work-offset">Привязать к СК (S):</label>
+                <select id="work-offset" onchange="generateGCode()">
+                    <option value="54">G54 (S54)</option>
+                    <option value="55">G55 (S55)</option>
+                    <option value="56">G56 (S56)</option>
+                    <option value="57">G57 (S57)</option>
+					<option value="58">G58 (S58)</option>
+					<option value="59">G59 (S59)</option>
+                </select>
+            </div>
+            <div class="input-group" id="ball-group" style="display:none;">
+                <label for="ball-val">Диаметр измерительного шарика (B):</label>
+                <input type="text" id="ball-val" value="6" oninput="generateGCode()">
+            </div>
+            <div class="input-group" id="size-group">
+                <label id="size-label" for="size-val">Размер элемента (D), мм:</label>
+                <input type="number" id="size-val" value="50" min="5" max="200" oninput="generateGCode()">
+            </div>
+            <div class="input-group" id="depth-group">
+                <label id="depth-label" for="depth-val">Глубина / Высота обхода:</label>
+                <input type="number" id="depth-val" value="-10" oninput="generateGCode()">
+            </div>
+        </div>
+
+        <!-- Правая колонка: Окно вывода и Графика -->
+        <div>
+            <div class="panel-title">Симуляция движения на станке</div>
+            <div class="visualizer-container">
+                <canvas id="probeCanvas" width="320" height="220"></canvas>
+                <div class="graphic-text" id="visual-description">Загрузка...</div>
+            </div>
+
+            <div class="panel-title" style="margin-top: 20px;">Готовый макрокод ЧПУ</div>
+            <div class="output-box" id="gcode-output"></div>
+            <button class="copy-btn" onclick="copyGCode()">Скопировать строку G-кода</button>
+        </div>
+    </div>
+</div>
+<script>
+    let currentCycle = 'surface';
+    let animTime = 0;
+    let isLooping = false;
+    let cncSystem = 'fanuc';
+
+    const cyclesList = ['surface', 'bore', 'boss', 'pocket_x', 'pocket_y', 'web_x', 'web_y', 'line', 'plane3p', 'angle_in', 'angle_out', 'rot_axis', 'cal_sphere', 'cal_ring', 'cal_z'];
+
+    function setCNC(val) {
+        cncSystem = val;
+        updateInterfaceFields();
+    }
+
+        function updateInterfaceFields() {
+        const sG = document.getElementById('size-group'), dG = document.getElementById('depth-group');
+        const wG = document.getElementById('wcs-group'), bG = document.getElementById('ball-group');
+        const aG = document.getElementById('axis-group'), diG = document.getElementById('dir-group');
+        const sL = document.getElementById('size-label'), vD = document.getElementById('visual-description');
+        const axisSelect = document.getElementById('axis-val');
+        const type = currentCycle;
+
+        const isCal = type.startsWith('cal_') || type === 'rot_axis';
+        wG.style.display = isCal ? 'none' : 'block';
+        bG.style.display = type.startsWith('cal_') ? 'block' : 'none';
+        
+        aG.style.display = (type === 'surface' || type === 'rot_axis') ? 'block' : 'none';
+        diG.style.display = type === 'surface' ? 'block' : 'none';
+
+        if (type === 'surface') {
+            axisSelect.innerHTML = `
+                <option value="1">Ось X (A1)</option>
+                <option value="2">Ось Y (A2)</option>
+                <option value="3" selected>Ось Z (A3)</option>
+            `;
+            sG.style.display = 'none'; dG.style.display = 'none'; // Скрыто для грани
+            vD.innerText = "M1 — Одиночная поверхность. Направление движения задается знаком аргумента A (A1/A-1 для X, A2/A-2 для Y, A3/A-3 для Z).";
+        } else if (type === 'rot_axis') {
+            axisSelect.innerHTML = `
+                <option value="1">Поворотная ось A (A1)</option>
+                <option value="2">Поворотная ось B (A2)</option>
+                <option value="3" selected>Поворотная ось C (A3)</option>
+            `;
+            sG.style.display = 'none'; dG.style.display = 'none';
+            vD.innerText = "M201 — Обновление поворотных осей (4-я/5-я ось станка). Знак направления не используется.";
+        } else if (type === 'cal_z') {
+            sG.style.display = 'none'; dG.style.display = 'none';
+            vD.innerText = "M103 — Калибровка длины датчика по оси Z на плоскости.";
+        } else if (type === 'cal_sphere') {
+            sG.style.display = 'block'; dG.style.display = 'none';
+            sL.innerText = "Точный диаметр сферы (D), мм:";
+            vD.innerText = "M102 — Калибровка XY по эталонной сфере с аргументом шарика B.";
+        } else if (type === 'cal_ring') {
+            sG.style.display = 'block'; dG.style.display = 'none';
+            sL.innerText = "Диаметр калибр-кольца (D), мм:";
+            vD.innerText = "M101 — Калибровка XY в эталонном кольце (Ring Gauge).";
+        } else if (type === 'line' || type === 'plane3p' || type === 'angle_in' || type === 'angle_out') {
+            sG.style.display = 'none'; dG.style.display = 'block';
+            vD.innerText = `Режим M${type==='line'?'4':type==='plane3p'?'1':type==='angle_in'?'6':'7'}. Сложная геометрия и углы согласно спецификации.`;
+        } else {
+            // Базовые замеры геометрии деталей
+            sG.style.display = 'block';
+            
+            // ЖЕСТКОЕ РАЗДЕЛЕНИЕ ВИДИМОСТИ ПОЛЯ ГЛУБИНЫ (dG):
+            if (type === 'bore') { 
+                sL.innerText = "Диаметр отверстия (D), мм:"; 
+                vD.innerText = "M2 — Внутреннее отверстие (Bore). Измерение по 4 точкам. Глубина не требуется.";
+                dG.style.display = 'none'; // СКРЫВАЕМ ПОЛЕ ГЛУБИНЫ ДЛЯ ОТВЕРСТИЯ
+            }
+            if (type === 'pocket_x' || type === 'pocket_y') { 
+                sL.innerText = "Ширина паза/кармана (D), мм:"; 
+                vD.innerText = "M4 — Внутренний паз / карман (Pocket). Замер ширины по 2 точкам изнутри.";
+                dG.style.display = 'none'; // СКРЫВАЕМ ПОЛЕ ГЛУБИНЫ ДЛЯ КАРМАНА
+            }
+            if (type === 'boss') { 
+                sL.innerText = "Диаметр бобышки (D), мм:"; 
+                vD.innerText = "M3 — Наружный вал / бобышка (Boss) с обходом по W.";
+                dG.style.display = 'block'; // ПОКАЗЫВАЕМ ПОЛЕ ДЛЯ ОБХОДА СНАРУЖИ
+            }
+            if (type === 'web_x' || type === 'web_y') { 
+                sL.innerText = "Толщина ребра/стены (D), мм:"; 
+                vD.innerText = "M5 — Наружное ребро / стенка (Web) с обходом по W.";
+                dG.style.display = 'block'; // ПОКАЗЫВАЕМ ПОЛЕ ДЛЯ ОБХОДА СНАРУЖИ
+            }
+        }
+        generateGCode();
+    }
+
+
+    function setCycle(type) {
+        currentCycle = type;
+        const btns = document.querySelectorAll('.menu-btn');
+        btns.forEach((b) => {
+            b.classList.toggle('active', b.getAttribute('onclick').includes(`'${type}'`));
+        });
+        animTime = 0; 
+        updateInterfaceFields();
+    }
+
+       function generateGCode() {
+        const wcs = document.getElementById('work-offset').value;
+        const s = Math.round(parseFloat(document.getElementById('size-val').value) || 0);
+        const depth = Math.round(parseFloat(document.getElementById('depth-val').value) || 0);
+        const b = document.getElementById('ball-val').value.trim();
+        const axisSel = document.getElementById('axis-val').value;
+        const dirSel = document.getElementById('dir-val') ? parseInt(document.getElementById('dir-val').value) : 1;
+        const out = document.getElementById('gcode-output');
+
+        const bArg = b ? ` B${b}` : "";
+        let cmd = "";
+
+        // Применяем знак минус ТОЛЬКО для поверхности M1
+        let surfaceAxis = axisSel;
+        if (currentCycle === 'surface' && dirSel === -1) {
+            surfaceAxis = "-" + surfaceAxis;
+        }
+
+        const prefix = (cncSystem === 'fanuc') ? "G65 P9901" : "L9901";
+
+        if (currentCycle === 'surface') cmd = `${prefix} M1 A${surfaceAxis} S${wcs}`;
+        // Убрана глубина Z для циклов, выполняемых изнутри элемента:
+        else if (currentCycle === 'bore') cmd = `${prefix} M2 D${s} S${wcs}`;
+        else if (currentCycle === 'pocket_x' || currentCycle === 'pocket_y') cmd = `${prefix} M4 D${s} S${wcs}`;
+        
+        // Оставляем обход W для наружных измерений:
+        else if (currentCycle === 'boss') cmd = `${prefix} M3 D${s} W${depth} S${wcs}`;
+        else if (currentCycle === 'web_x' || currentCycle === 'web_y') cmd = `${prefix} M5 D${s} W${depth} S${wcs}`;
+        
+        // Сложная геометрия и углы согласно новой спецификации:
+        else if (currentCycle === 'line') cmd = `${prefix} M4 D${s} Z${depth} S${wcs}`; 
+        else if (currentCycle === 'plane3p') cmd = `${prefix} M1 A3 S${wcs}`; 
+        else if (currentCycle === 'angle_in') cmd = `${prefix} M6 D${s} Z${depth} S${wcs}`;
+        else if (currentCycle === 'angle_out') cmd = `${prefix} M7 D${s} W${depth} S${wcs}`;
+        
+        // Сервисные функции и калибровки:
+        else if (currentCycle === 'rot_axis') cmd = `${prefix} M201 A${axisSel}`;
+        else if (currentCycle === 'cal_sphere') cmd = `${prefix} M105 D${s}${bArg}`;
+        else if (currentCycle === 'cal_ring') cmd = `${prefix} M102 D${s}${bArg} V1`;
+        else if (currentCycle === 'cal_z') cmd = `${prefix} M103 A3${bArg}`;
+
+        out.innerText = cmd;
+    }
+
+ 
+    // Отрисовка рубинового шарика измерительной головки
+    function drawStylus(ctx, x, y, touch) {
+        ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = touch ? "#ff0000" : "#ff3333"; ctx.fill();
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.beginPath(); ctx.arc(x - 2, y - 2, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.fill();
+    }
+
+    // Главный цикл Canvas-анимации движения щупа
+    function drawLoop() {
+        const canvas = document.getElementById('probeCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const cx = canvas.width / 2, cy = canvas.height / 2;
+        const sizeInput = parseFloat(document.getElementById('size-val').value) || 50;
+        const r = Math.min(Math.max(sizeInput * 0.8, 25), 80);
+        animTime += 0.02;
+
+        let phase = Math.floor(animTime % 4);
+        let move = Math.abs(Math.sin((animTime % 1) * Math.PI));
+        let touch = move > 0.95;
+        let sx = cx, sy = cy;
+
+        const axisSel = document.getElementById('axis-val').value;
+        const dirSel = document.getElementById('dir-val') ? parseInt(document.getElementById('dir-val').value) : 1;
+
+        if (currentCycle === 'surface' || currentCycle === 'cal_z') {
+            // M1 и M103 — Измерение плоскости или калибровка Z
+            if (currentCycle === 'surface' && (axisSel === '1' || axisSel === '2')) {
+                // Боковые грани X и Y (вид сверху)
+                ctx.fillStyle = "#444"; ctx.fillRect(cx - 30, cy - 30, 60, 60);
+                ctx.strokeStyle = "#666"; ctx.lineWidth = 2; ctx.strokeRect(cx - 30, cy - 30, 60, 60);
+                
+                if (axisSel === '1') {
+                    sx = cx + (dirSel === 1 ? -45 : 45) + (move * 15 * dirSel);
+                    sy = cy;
+                } else {
+                    sx = cx;
+                    sy = cy + (dirSel === 1 ? -45 : 45) + (move * 15 * dirSel);
+                }
+                drawStylus(ctx, sx, sy, touch);
+            } else {
+                // Ось Z (вид сбоку)
+                ctx.fillStyle = currentCycle === 'cal_z' ? "#555" : "#444"; 
+                ctx.fillRect(50, cy + 20, 220, 60);
+                ctx.strokeStyle = currentCycle === 'cal_z' ? "#ff6600" : "#666"; 
+                ctx.lineWidth = 2; ctx.strokeRect(50, cy + 20, 220, 60);
+                
+                let dZ = Math.abs(Math.sin(animTime)) * 30;
+                drawStylus(ctx, cx, (cy + 20) - dZ, dZ < 2);
+            }
+
+        } else if (currentCycle === 'bore' || currentCycle === 'cal_ring') {
+            // M2 и M101 — Отверстие и Кольцо
+            ctx.fillStyle = "#444"; ctx.fillRect(40, 20, 240, 180);
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fillStyle = "#151515"; ctx.fill();
+            ctx.strokeStyle = "#ff6600"; ctx.lineWidth = (currentCycle === 'cal_ring') ? 4 : 2; ctx.stroke();
+            
+            if (phase === 0) sx = cx - (r - 6) * move; if (phase === 1) sx = cx + (r - 6) * move;
+            if (phase === 2) sy = cy - (r - 6) * move; if (phase === 3) sy = cy + (r - 6) * move;
+            drawStylus(ctx, sx, sy, touch);
+
+        } else if (currentCycle === 'boss' || currentCycle === 'cal_sphere') {
+            // M3 и M102 — Бобышка и Сфера (обход снаружи)
+            ctx.fillStyle = "#222"; ctx.fillRect(40, 20, 240, 180);
+            
+            if (currentCycle === 'cal_sphere') {
+                let gradient = ctx.createRadialGradient(cx - r/3, cy - r/3, r/10, cx, cy, r);
+                gradient.addColorStop(0, '#888'); gradient.addColorStop(0.3, '#555'); gradient.addColorStop(1, '#1b1b1b');
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = gradient; ctx.fill();
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.15)"; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.ellipse(cx, cy, r, r/3, 0, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.ellipse(cx, cy, r/3, r, 0, 0, Math.PI * 2); ctx.stroke();
+                ctx.strokeStyle = "#ff6600"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+            } else {
+                ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = "#444"; ctx.fill();
+                ctx.strokeStyle = "#ff6600"; ctx.lineWidth = 2; ctx.stroke();
+            }
+            
+            let off = r + 15;
+            if (phase === 0) sx = cx - off + (15 - 6) * (1 - move); if (phase === 1) sx = cx + off - (15 - 6) * (1 - move);
+            if (phase === 2) sy = cy - off + (15 - 6) * (1 - move); if (phase === 3) sy = cy + off - (15 - 6) * (1 - move);
+            drawStylus(ctx, sx, sy, touch);
+
+        } else if (currentCycle === 'pocket_x' || currentCycle === 'pocket_y') {
+            // M4 — Внутренний паз / Карман
+            ctx.fillStyle = "#444"; ctx.fillRect(40, 20, 240, 180);
+            ctx.fillStyle = "#151515";
+            if (currentCycle === 'pocket_x') ctx.fillRect(cx - r, cy - 60, r * 2, 120);
+            else ctx.fillRect(cx - 60, cy - r, 120, r * 2);
+            ctx.strokeStyle = "#ff6600"; ctx.lineWidth = 2;
+            if (currentCycle === 'pocket_x') ctx.strokeRect(cx - r, cy - 60, r * 2, 120);
+            else ctx.strokeRect(cx - 60, cy - r, 120, r * 2);
+
+            let p2 = Math.floor(animTime % 2);
+            if (currentCycle === 'pocket_x') sx = p2 === 0 ? cx - (r - 6) * move : cx + (r - 6) * move;
+            else sy = p2 === 0 ? cy - (r - 6) * move : cy + (r - 6) * move;
+            drawStylus(ctx, sx, sy, touch);
+
+        } else if (currentCycle === 'web_x' || currentCycle === 'web_y') {
+            // M5 — Наружное ребро / Стенка
+            ctx.fillStyle = "#222"; ctx.fillRect(40, 20, 240, 180);
+            ctx.fillStyle = "#444";
+            if (currentCycle === 'web_x') ctx.fillRect(cx - r, cy - 60, r * 2, 120);
+            else ctx.fillRect(cx - 60, cy - r, 120, r * 2);
+            ctx.strokeStyle = "#ff6600"; ctx.lineWidth = 2;
+            if (currentCycle === 'web_x') ctx.strokeRect(cx - r, cy - 60, r * 2, 120);
+            else ctx.strokeRect(cx - 60, cy - r, 120, r * 2);
+
+            let p2 = Math.floor(animTime % 2), off = r + 15;
+            if (currentCycle === 'web_x') sx = p2 === 0 ? cx - off + (15 - 6) * (1 - move) : cx + off - (15 - 6) * (1 - move);
+            else sy = p2 === 0 ? cy - off + (15 - 6) * (1 - move) : cy + off - (15 - 6) * (1 - move);
+            drawStylus(ctx, sx, sy, touch);
+
+        } else if (currentCycle === 'angle_in' || currentCycle === 'angle_out') {
+            // M6 и M7 — Углы (отрисовка пересечения двух перпендикулярных линий)
+            ctx.fillStyle = "#222"; ctx.fillRect(40, 20, 240, 180);
+            ctx.strokeStyle = "#ff6600"; ctx.lineWidth = 3;
+            
+            ctx.beginPath();
+            if (currentCycle === 'angle_in') {
+                ctx.moveTo(70, 40); ctx.lineTo(70, 150); ctx.lineTo(200, 150);
+            } else {
+                ctx.moveTo(180, 40); ctx.lineTo(180, 130); ctx.lineTo(70, 130);
+            }
+            ctx.stroke();
+
+            let p2 = Math.floor(animTime % 2);
+            if (currentCycle === 'angle_in') {
+                sx = p2 === 0 ? 70 + (move * 30) : 70;
+                sy = p2 === 0 ? 150 : 150 - (move * 30);
+            } else {
+                sx = p2 === 0 ? 180 - (move * 30) : 180;
+                sy = p2 === 0 ? 130 : 130 + (move * 30);
+            }
+            drawStylus(ctx, sx, sy, touch);
+
+        } else if (currentCycle === 'rot_axis') {
+            // M201 — Поворотный стол (отрисовка наклонной оси-планшайбы)
+            ctx.fillStyle = "#151515"; ctx.fillRect(40, 20, 240, 180);
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(animTime * 0.5); // Медленное вращение стола
+            
+            ctx.fillStyle = "#444"; ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "#ff6600"; ctx.lineWidth = 2; ctx.stroke();
+            // Т-образные пазы стола
+            ctx.strokeStyle = "#222"; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(-60, 0); ctx.lineTo(60, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -60); ctx.lineTo(0, 60); ctx.stroke();
+            ctx.restore();
+            
+            // Касание щупом центра вращающегося стола
+            drawStylus(ctx, cx, cy, false);
+
+        } else {
+            // Геометрические циклы (Линия М4, Плоскость М1)
+            ctx.fillStyle = "#222"; ctx.fillRect(40, 20, 240, 180);
+            ctx.strokeStyle = "#ff6600"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(60, 60); ctx.lineTo(260, 140); ctx.stroke();
+            
+            let p3 = Math.floor(animTime % 3);
+            if (p3 === 0) { sx = 80; sy = 68; }
+            if (p3 === 1) { sx = 160; sy = 100; }
+            if (p3 === 2) { sx = 240; sy = 132; }
+            
+            drawStylus(ctx, sx, sy - (move * 15), touch);
+        }
+
+        requestAnimationFrame(drawLoop);
+    }
+
+    // Запуск симулятора и активация потока Canvas
+    window.onload = () => {
+        setCycle('surface');
+        if (!isLooping) { isLooping = true; drawLoop(); }
+    };
+</script>
+</body>
+</html>
